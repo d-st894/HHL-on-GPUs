@@ -1,7 +1,7 @@
 #imports
 
 import matplotlib.pyplot as plt
-%matplotlib inline
+#%matplotlib inline
 #plt.rcParams["figure.figsize"]=20,10
 import numpy as np
 import math
@@ -130,6 +130,40 @@ def simulate(circuit) :
     #print(avg_answer['1 1']/avg_answer['0 1'])
     return [avg_answer,ratios]
 
+# result
+
+def simulate(circuit) :
+    
+    aer_sim=Aer.get_backend('aer_simulator')
+    #aer_sim.set_options(method='statevector',device='GPU')
+    ##aer_sim.set_options(cusvaer_enable=false)
+
+    ##simulator_gpu = Aer.get_backend('aer_simulator')
+    ###sim = AerSimulator(method='statevector', device='GPU')
+    ###simulator_gpu.set_options(device='GPU')
+    
+    shots=10**3
+    t_circuit=transpile(circuit,aer_sim)
+    qobj=assemble(t_circuit,shots=shots)
+    
+    avg_answer={}
+    ratios=np.zeros((50,8))
+    for i in range(50) :
+        results=aer_sim.run(qobj).result()
+        answer=results.get_counts()
+        for key in answer :
+            if key[-1]=='1' :
+                if key in avg_answer :
+                    avg_answer[key]=(avg_answer[key]*i+answer[key])/(i+1)
+                else :
+                    avg_answer[key]=answer[key]
+                if key[-1]=='1' :
+                    j=int(key[:-1],2)
+                    ratios[i][j]=answer[key]
+    for i in range(len(ratios)) :
+        ratios[i]=[ratios[i][j]/ratios[i][0] for j in range(len(ratios[i]))]
+    #print(avg_answer['1 1']/avg_answer['0 1'])
+    return [avg_answer,ratios]
 # params and circuit diagram
 
 #A=np.array([[1,-1/2],[-1/2,1]])
