@@ -149,10 +149,10 @@ def build_circuit(A,bmat,t,nclock) :
 
 # result
 
-def simulate(circuit) :
+def simulate(tmp_circuit) :
     
     aer_sim=Aer.get_backend('aer_simulator')
-    #aer_sim.set_options(method='statevector',device='GPU')
+    aer_sim.set_options(method='statevector',device='GPU')
     ##aer_sim.set_options(cusvaer_enable=false)
 
     ##simulator_gpu = Aer.get_backend('aer_simulator')
@@ -160,6 +160,9 @@ def simulate(circuit) :
     ###simulator_gpu.set_options(device='GPU')
     
     shots=10**3
+    circuit=QuantumCircuit(tmp_circuit.num_qubits,tmp_circuit.num_clbits)
+    circuit.compose(tmp_circuit,inplace=True)
+
     t_circuit=transpile(circuit,aer_sim)
     qobj=assemble(t_circuit,shots=shots)
     
@@ -178,7 +181,7 @@ def simulate(circuit) :
                     j=int(key[:-1],2)
                     ratios[i][j]=answer[key]
     for i in range(len(ratios)) :
-        if ratios[i][0]!=0 : ratios[i]=[ratios[i][j]/ratios[i][0] for j in range(len(ratios[i]))]
+        ratios[i]=[ratios[i][j]/ratios[i][0] for j in range(len(ratios[i]))]
     #print(avg_answer['1 1']/avg_answer['0 1'])
     return [avg_answer,ratios]
 
@@ -189,25 +192,19 @@ def simulate(circuit) :
 # params and circuit diagram
 
 #A=np.array([[1,-1/2],[-1/2,1]])
-N=8
-maximum=8.0
-eigs=[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0]
-#eigs=np.random.uniform(low=0.0,high=maximum,size=N)
-#eigs=np.ceil(eigs)
-#print(eigs)
-#m=ortho_group.rvs(dim=len(eigs))
+N=8 # change problem size here
+max_eigs=8.0 # upper bound on eigenvalues
+eigs=np.random.uniform(low=0.0,high=max_eigs,size=N)
+print(eigs)
+m=ortho_group.rvs(dim=len(eigs))
 A=np.diag(eigs)
-print(A)
-#A=np.matmul(np.matmul(np.transpose(m),A),m)
+A=np.matmul(np.matmul(np.transpose(m),A),m)
 
-b_mat=np.array([1,0,0,0,1,0,1,1])
-#b_mat=np.random.rand(8)
-bmat=np.array(b_mat/np.linalg.norm(b_mat))
-
+bmat=np.array([1,0,0,1,0,0,0,0])
+bmat=bmat/np.sqrt(bmat.dot(bmat))
 nclock=6
-
-#t=np.pi
-t=2*np.pi*((2**nclock)-1)/((2**nclock)*max(eigs))
+t=np.pi
+t=2*np.pi*(2**nclock-1)/((2**nclock)*min(eigs)) # t such that highest eig at highest clock
 
 exact=np.linalg.solve(A,bmat)
 exactratios=[(exact[i]/exact[0])**2 for i in range(len(exact))]
@@ -257,7 +254,6 @@ std_ratios=[]
 for i in range(len(ratios[0])) :
     avg_ratios.append(sum(ratios[:,i])/len(ratios[:,i]))
     std_ratios.append(np.sqrt(sum([(ratios[j,i]-avg_ratios[-1])**2 for j in range(len(ratios[:,i]))])/len(ratios[:,i])))
-
-#print(exactratios)
+print(exactratios)
 print(avg_ratios)
 print(std_ratios)
