@@ -164,7 +164,7 @@ def simulate(circuit) :
     qobj=assemble(t_circuit,shots=shots)
     
     avg_answer={}
-    ratios=np.zeros((50,8))
+    ratios=np.zeros((50,2))
     for i in range(50) :
         results=aer_sim.run(qobj).result()
         answer=results.get_counts()
@@ -189,9 +189,9 @@ def simulate(circuit) :
 # params and circuit diagram
 
 #A=np.array([[1,-1/2],[-1/2,1]])
-N=8
+N=2
 maximum=8.0
-eigs=[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0]
+eigs=[1.0,2.0]#,3.0,4.0,5.0,6.0,7.0,8.0]
 #eigs=np.random.uniform(low=0.0,high=maximum,size=N)
 #eigs=np.ceil(eigs)
 #print(eigs)
@@ -200,11 +200,11 @@ A=np.diag(eigs)
 print(A)
 #A=np.matmul(np.matmul(np.transpose(m),A),m)
 
-b_mat=np.array([1,0,0,0,1,0,1,1])
+b_mat=np.array([1,0])#,0,0,1,0,1,1])
 #b_mat=np.random.rand(8)
 bmat=np.array(b_mat/np.linalg.norm(b_mat))
 
-nclock=6
+nclock=1
 
 #t=np.pi
 t=2*np.pi*((2**nclock)-1)/((2**nclock)*max(eigs))
