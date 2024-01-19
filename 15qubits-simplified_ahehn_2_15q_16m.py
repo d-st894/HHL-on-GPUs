@@ -161,7 +161,7 @@ def build_circuit(A,bmat,t,nclock) :
 def simulate(tmp_circuit) :
     
     aer_sim=Aer.get_backend('aer_simulator', method='statevector')
-    ###aer_sim.set_options(method='statevector',device='GPU')
+    aer_sim.set_options(method='statevector',device='GPU')
     ##aer_sim.set_options(cusvaer_enable=false)
 
     ##simulator_gpu = Aer.get_backend('aer_simulator')
@@ -208,29 +208,34 @@ def simulate(tmp_circuit) :
 
 # params and circuit diagram
 
+np.random.seed(12)
+#np.random.seed(96)
+#np.random.seed(40)
+
 #A=np.array([[1,-1/2],[-1/2,1]])
 N=16
-maximum=8.0
-eigs=[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0]
-#eigs=np.random.uniform(low=0.0,high=maximum,size=N)
+maximum=16.0
+#eigs=[1.0,2.0]#,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0]
+eigs=np.random.uniform(low=0.0,high=maximum,size=N)
 #eigs=np.ceil(eigs)
-#print(eigs)
-#m=ortho_group.rvs(dim=len(eigs))
+print(eigs)
+m=ortho_group.rvs(dim=len(eigs))
 A=np.diag(eigs)
+A=np.matmul(np.matmul(np.transpose(m),A),m)
 print(A)
-#A=np.matmul(np.matmul(np.transpose(m),A),m)
 
-b_mat=np.array([1,0,0,0,1,0,1,1,0,0,1,1,0,0,1,1])
-#b_mat=np.random.rand(8)
+#b_mat=np.array([1,0])#,0,0,1,0,1,1,0,0,1,1,0,0,1,1])
+b_mat=np.random.rand(N)
 bmat=np.array(b_mat/np.linalg.norm(b_mat))
 
-nclock=6
+nclock=10
 
 #t=np.pi
 t=2*np.pi*((2**nclock)-1)/((2**nclock)*max(eigs))
 
 exact=np.linalg.solve(A,bmat)
 exactratios=[(exact[i]/exact[0])**2 for i in range(len(exact))]
+print(exactratios)
 
 circuit=build_circuit(A,bmat,t,nclock)
 #circuit.draw('mpl',filename='exact-encoding-circuit1.png',)
@@ -278,6 +283,5 @@ for i in range(len(ratios[0])) :
     avg_ratios.append(sum(ratios[:,i])/len(ratios[:,i]))
     std_ratios.append(np.sqrt(sum([(ratios[j,i]-avg_ratios[-1])**2 for j in range(len(ratios[:,i]))])/len(ratios[:,i])))
 
-#print(exactratios)
 print(avg_ratios)
 print(std_ratios)
