@@ -16,4 +16,4 @@ Contains the fixed file supplied by Nvidia and modifications of it trying out mo
 
 ## toric_code
 
-Files with a 2 cross 2 toric code hamiltonian fed into HHL. Based on the Nvidia fixed file. Matrix size is always 256 X 256 (4 vertices + 4 edges = 8 qubits = 2^8 matrix size). Different files for different number of clock qubits. There is a flag within the code to run it with out a wilson loop.
+Files with a 2 cross 2 toric code hamiltonian fed into HHL. Based on the Nvidia fixed file. Matrix size is always 256 X 256 (4 vertices + 4 edges = 8 qubits = 2^8 matrix size). Different files for different number of clock qubits. There is a flag within the code to run it with or without a wilson loop.
