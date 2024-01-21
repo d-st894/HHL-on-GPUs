@@ -26,7 +26,7 @@ import scipy.sparse as sps
 import scipy.sparse.linalg as spslin
 
 gpu=False
-wilson_loop=False
+wilson_loop=True
 
 # In[2]:
 
@@ -114,20 +114,25 @@ def iqpe(clocks,states,gate) :
 
 def hhl(circ,ancilla,clock,b,anc_measure,b_measure,Ugate) :
     temp1=qpe(clock.size,b.size,Ugate)
+    print("doing qpe")
     circ.compose(temp1,inplace=True)
-    
+    print("qpe done")    
+
+    print("doing ancillary roations")
     target=[clock[i] for i in range(nclock)]
     target.append(ancilla)
     for i in range(2**nclock) :
         gate = get_U_gate(i, dec_to_bin(i)).control(nclock,ctrl_state=dec_to_bin(i))
         circ.append(gate, target)
     circ.barrier()
+    print("rotations done")
     
 #    circ.measure(ancilla,anc_measure)
-    
+    print("doing iqpe")
     temp2=iqpe(clock.size,b.size,Ugate)
     circ.compose(temp2,inplace=True)
-    
+    print("iqpe done")    
+
     circ.measure(ancilla,anc_measure)
     circ.measure(b,b_measure)
 
@@ -143,6 +148,7 @@ def build_circuit(A,bmat,t,nclock) :
         
     U=linalg.expm(t*A*1j)
     Ugate=UnitaryGate(U,label="e^iAt").control()
+    print("e^(iAt) constructed")
 
     clock=QuantumRegister(nclock,name='clock')
     b=QuantumRegister(nb,name='b')
@@ -153,6 +159,7 @@ def build_circuit(A,bmat,t,nclock) :
     
     circuit.initialize(bmat/np.linalg.norm(bmat),b)
     circuit.barrier()
+    print("b initialised")
     hhl(circuit,ancilla,clock,b,a_measure,b_measure,Ugate)
     
     return circuit
@@ -203,6 +210,7 @@ def simulate(size,tmp_circuit) :
                 if key[-1]=='1' :
                     j=int(key[:-1],2)
                     ratios[i][j]=answer[key]
+        if (i+1)%10==0 : print(str(i)+" of 50 sims done")     
     for i in range(len(ratios)) :
         if ratios[i][0]!=0 : ratios[i]=[ratios[i][j]/ratios[i][0] for j in range(len(ratios[i]))]
     #print(avg_answer['1 1']/avg_answer['0 1'])
@@ -269,6 +277,7 @@ if wilson_loop :
 else :
     A=toric_hamiltonian(N_toric,operations)
 N=len(A) # 256, i.e., 2**8
+print("A constructed")
 
 #A=np.array([[1,-1/2],[-1/2,1]])
 #N=32
@@ -291,11 +300,12 @@ nclock=8
 #t=np.pi
 t=2*np.pi*((2**nclock)-1)/((2**nclock)*10.0)
 
-exact=np.linalg.solve(A,bmat)
-exactratios=[(exact[i]/exact[0])**2 for i in range(len(exact))]
-print(exactratios)
-
+#exact=np.linalg.solve(A,bmat)
+#exactratios=[(exact[i]/exact[0])**2 for i in range(len(exact))]
+#print(exactratios)
+print("building circuit")
 circuit=build_circuit(A,bmat,t,nclock)
+print("circuit built")
 #circuit.draw('mpl',filename='exact-encoding-circuit1.png',)
 
 
@@ -304,8 +314,9 @@ circuit=build_circuit(A,bmat,t,nclock)
 
 # multiple runs
 
+print("simulating")
 [answer,ratios]=simulate(N,circuit)
-
+print("simulation done")
 #[fig,ax]=plt.subplots(1,2)
 #for i in range(2) :
 #    ax[i].hist(ratios[:,i])
