@@ -214,19 +214,21 @@ np.random.seed(954)
 
 #A=np.array([[1,-1/2],[-1/2,1]])
 N=8
-maximum=8.0
+#maximum=16.0
 #eigs=[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0]
-eigs=np.random.uniform(low=0.0,high=maximum,size=N)
-eigs=np.ceil(eigs)
-#print(eigs)
-m=ortho_group.rvs(dim=len(eigs))
+#eigs=np.random.uniform(low=0.0,high=maximum,size=N)
+#eigs=np.ceil(eigs)
+eigs=list(range(1,N+1))
+print(eigs)
+#m=ortho_group.rvs(dim=len(eigs))
 A=np.diag(eigs)
 #print(A)
-A=np.matmul(np.matmul(np.transpose(m),A),m)
+#A=np.matmul(np.matmul(np.transpose(m),A),m)
 print(A)
 
 #b_mat=np.array([1,0,0,0,1,0,1,1,0,0,1,1,0,0,1,1])
-b_mat=np.random.rand(N)
+b_mat=np.zeros(N)
+b_mat[0]=1
 bmat=np.array(b_mat/np.linalg.norm(b_mat))
 
 nclock=4
