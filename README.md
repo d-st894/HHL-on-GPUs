@@ -1,5 +1,17 @@
 # HHL on GPUs using cuquantum
 
+## Summary :
+
+- We have a regular qiksit implementation of HHL.
+- We have a cuQuantum implementation of HHL that requires modifying the code in ways. I don't yet understand why these particular modificationsa were needed, but I want to.
+- We have compared run times of these two in the 22jan folders for different types of matrices :
+    * Diagonal matrices whose elements are binary fractions.
+    * Diagonal matrices whose elements are irrational (randomly generated).
+    * Randomly generated matrices.
+- There are still some issues that need to be fixed :
+    * The IQPE needs to be more explicit.
+    * mpirun sometimes creates independent copies of the run on different devices.
+
 ## Folders :
 
 ### old
@@ -22,14 +34,3 @@ Files with a 2 cross 2 toric code hamiltonian fed into HHL. Based on the Nvidia 
 
 Codes for stuff put in the final poster.
 
-## Summary :
-
-- We have a regular qiksit implementation of HHL.
-- We have a cuQuantum implementation of HHL that requires modifying the code in ways. I don't yet understand why these particular modificationsa were needed, but I want to.
-- We have compared run times of these two in the 22jan folders for different types of matrices :
-    * Diagonal matrices whose elements are binary fractions.
-    * Diagonal matrices whose elements are irrational (randomly generated).
-    * Randomly generated matrices.
-- There are still some issues that need to be fixed :
-    * The IQPE needs to be more explicit.
-    * mpirun sometimes creates independent copies of the run on different devices.
