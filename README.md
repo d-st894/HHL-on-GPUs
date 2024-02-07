@@ -34,3 +34,6 @@ Files with a 2 cross 2 toric code hamiltonian fed into HHL. Based on the Nvidia 
 
 Codes for stuff put in the final poster.
 
+### explicit-qpe
+
+Codes with explicit quantum phase estimation and some more suggestions
