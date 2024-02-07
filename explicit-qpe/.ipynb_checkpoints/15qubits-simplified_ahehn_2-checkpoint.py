@@ -96,7 +96,6 @@ def qpe(clocks,states,gate) :
     return qpe
 
 def iqpe(clocks,states,gate) :
-    nclock=
     temp=qpe(clocks,states,gate)
     iqpe=temp.inverse()
     iqpe.barrier()

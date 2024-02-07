@@ -96,7 +96,6 @@ def qpe(clocks,states,gate) :
     return qpe
 
 def iqpe(clocks,states,gate) :
-    nclock=
     temp=qpe(clocks,states,gate)
     iqpe=temp.inverse()
     iqpe.barrier()
@@ -159,10 +158,10 @@ def build_circuit(A,bmat,t,nclock) :
 
 # result
 
-def simulate(tmp_circuit) :
+def simulate(size,tmp_circuit) :
     
     aer_sim=Aer.get_backend('aer_simulator', method='statevector')
-    ###aer_sim.set_options(method='statevector',device='GPU')
+    aer_sim.set_options(method='statevector',device='GPU')
     ##aer_sim.set_options(cusvaer_enable=false)
 
     ##simulator_gpu = Aer.get_backend('aer_simulator')
@@ -185,7 +184,7 @@ def simulate(tmp_circuit) :
 #    qobj=assemble(t_circuit,shots=shots)
     
     avg_answer={}
-    ratios=np.zeros((50,16))
+    ratios=np.zeros((50,size))
     results=aer_sim.run(t_circuit,shots=shots).result()
     for i in range(50) :
         answer=results.get_counts()
@@ -209,20 +208,25 @@ def simulate(tmp_circuit) :
 
 # params and circuit diagram
 
-#A=np.array([[1,-1/2],[-1/2,1]])
-N=16
-maximum=8.0
-eigs=[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0]
-#eigs=np.random.uniform(low=0.0,high=maximum,size=N)
-#eigs=np.ceil(eigs)
-#print(eigs)
-#m=ortho_group.rvs(dim=len(eigs))
-A=np.diag(eigs)
-print(A)
-#A=np.matmul(np.matmul(np.transpose(m),A),m)
+np.random.seed(45876)
+#np.random.seed(606)
+#np.random.seed(5656)
 
-b_mat=np.array([1,0,0,0,1,0,1,1,0,0,1,1,0,0,1,1])
-#b_mat=np.random.rand(8)
+#A=np.array([[1,-1/2],[-1/2,1]])
+N=32
+maximum=32.0
+#eigs=[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0]
+eigs=np.random.uniform(low=0.0,high=maximum,size=N)
+eigs=np.ceil(eigs)
+#print(eigs)
+m=ortho_group.rvs(dim=len(eigs))
+A=np.diag(eigs)
+#print(A)
+A=np.matmul(np.matmul(np.transpose(m),A),m)
+print(A)
+
+#b_mat=np.array([1,0,0,0,1,0,1,1,0,0,1,1,0,0,1,1])
+b_mat=np.random.rand(N)
 bmat=np.array(b_mat/np.linalg.norm(b_mat))
 
 nclock=6
@@ -242,7 +246,7 @@ circuit=build_circuit(A,bmat,t,nclock)
 
 # multiple runs
 
-[answer,ratios]=simulate(circuit)
+[answer,ratios]=simulate(N,circuit)
 
 #[fig,ax]=plt.subplots(1,2)
 #for i in range(2) :
@@ -279,6 +283,6 @@ for i in range(len(ratios[0])) :
     avg_ratios.append(sum(ratios[:,i])/len(ratios[:,i]))
     std_ratios.append(np.sqrt(sum([(ratios[j,i]-avg_ratios[-1])**2 for j in range(len(ratios[:,i]))])/len(ratios[:,i])))
 
-#print(exactratios)
+print(exactratios)
 print(avg_ratios)
 print(std_ratios)

@@ -21,6 +21,14 @@ from qiskit.tools.monitor import job_monitor
 from scipy import linalg
 from scipy.stats import ortho_group
 from time import perf_counter
+from qiskit.circuit.library import QFT
+from qiskit.extensions import HamiltonianGate
+
+gpu=False # turn to true for gpu
+nc=2 # number of clock qubits
+psize=2 # problem size ( m in file title )
+iqubits=int(np.log2(psize)) # number of input qubits (q in file title = nc+iqubits+1)
+
 
 
 # In[2]:
@@ -50,25 +58,16 @@ def dec_to_bin(d) :
 
 # qft
 
-def qft_rotations(circuit,n) :
-    if n==0 :
-        return circuit
-    n-=1
-    circuit.h(n)
-    for qubit in range(n) :
-        circuit.cp(-np.pi/2**(n-qubit),qubit,n)
-    qft_rotations(circuit,n)
+    
+def iqft(circuit,n) :
+    qc=QuantumCircuit(n)
+    iqft=QFT(num_qubits=n,inverse=True).decompose()
+    circuit.compose(iqft,inplace=True)
 
-def swap_registers(circuit,n) :
-    for qubit in range(n//2):
-        circuit.swap(qubit,n-qubit-1)
-    return circuit
-
-def qft_dagger(qc,n) :
-    qft_rotations(qc,n)
-    swap_registers(qc,n)
-    return qc
-
+def qft(circuit,n) :
+    qc=QuantumCircuit(n)
+    qft=QFT(num_qubits=n).decompose()
+    circuit.compose(qft,inplace=True)
 
 # In[4]:
 
@@ -91,24 +90,37 @@ def qpe(clocks,states,gate) :
             qpe.append(gate,target)
         repetitions*=2
     qpe.barrier()
-    qft_dagger(qpe,clocks)
+    iqft(qpe,clocks)
     qpe.barrier()
     return qpe
 
 def iqpe(clocks,states,gate) :
-    nclock=
-    temp=qpe(clocks,states,gate)
-    iqpe=temp.inverse()
+    clock=QuantumRegister(clocks)
+    state=QuantumRegister(states)
+    dummy=QuantumRegister(1)
+    cdummy=ClassicalRegister(states)
+    iqpe=QuantumCircuit(clock,state,dummy,cdummy)
     iqpe.barrier()
+    qft(iqpe,clocks)
+    iqpe.barrier()    
+    repetitions=int(2**(clocks-1))
+    for a in reversed(range(clocks)):
+        for i in range(repetitions):
+            target=[clock[a]]
+            for i in range(states) :
+                target.append(state[i])
+            iqpe.append(gate,target)
+        repetitions=int(repetitions/2)
+    iqpe.h(clock)
+    iqpe.barrier()    
     return iqpe
-
 
 # In[5]:
 
 
 # hhl in all it's glory.
 
-def hhl(circ,ancilla,clock,b,anc_measure,b_measure,Ugate) :
+def hhl(circ,ancilla,clock,b,anc_measure,b_measure,Ugate,Ugate_dagger) :
     temp1=qpe(clock.size,b.size,Ugate)
     circ.compose(temp1,inplace=True)
     
@@ -121,7 +133,7 @@ def hhl(circ,ancilla,clock,b,anc_measure,b_measure,Ugate) :
     
 #    circ.measure(ancilla,anc_measure)
     
-    temp2=iqpe(clock.size,b.size,Ugate)
+    temp2=iqpe(clock.size,b.size,Ugate_dagger)
     circ.compose(temp2,inplace=True)
     
     circ.measure(ancilla,anc_measure)
@@ -134,11 +146,11 @@ def hhl(circ,ancilla,clock,b,anc_measure,b_measure,Ugate) :
 #parameters and circuit
 
 def build_circuit(A,bmat,t,nclock) :
-    N=len(bmat)
-    nb=(int)(np.log2(N))
+    N=psize
+    nb=iqubits
         
-    U=linalg.expm(t*A*1j)
-    Ugate=UnitaryGate(U,label="e^iAt").control()
+    Ugate=HamiltonianGate(-A,t,label="e^iAt").control()
+    Ugate_dagger=HamiltonianGate(A,t,label="e^-iAt").control()
 
     clock=QuantumRegister(nclock,name='clock')
     b=QuantumRegister(nb,name='b')
@@ -149,7 +161,7 @@ def build_circuit(A,bmat,t,nclock) :
     
     circuit.initialize(bmat/np.linalg.norm(bmat),b)
     circuit.barrier()
-    hhl(circuit,ancilla,clock,b,a_measure,b_measure,Ugate)
+    hhl(circuit,ancilla,clock,b,a_measure,b_measure,Ugate,Ugate_dagger)
     
     return circuit
 
@@ -159,10 +171,10 @@ def build_circuit(A,bmat,t,nclock) :
 
 # result
 
-def simulate(tmp_circuit) :
+def simulate(size,tmp_circuit) :
     
     aer_sim=Aer.get_backend('aer_simulator', method='statevector')
-    ###aer_sim.set_options(method='statevector',device='GPU')
+    if gpu : aer_sim.set_options(method='statevector',device='GPU')
     ##aer_sim.set_options(cusvaer_enable=false)
 
     ##simulator_gpu = Aer.get_backend('aer_simulator')
@@ -185,7 +197,7 @@ def simulate(tmp_circuit) :
 #    qobj=assemble(t_circuit,shots=shots)
     
     avg_answer={}
-    ratios=np.zeros((50,16))
+    ratios=np.zeros((50,size))
     results=aer_sim.run(t_circuit,shots=shots).result()
     for i in range(50) :
         answer=results.get_counts()
@@ -209,23 +221,28 @@ def simulate(tmp_circuit) :
 
 # params and circuit diagram
 
-#A=np.array([[1,-1/2],[-1/2,1]])
-N=16
-maximum=8.0
-eigs=[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0]
-#eigs=np.random.uniform(low=0.0,high=maximum,size=N)
-#eigs=np.ceil(eigs)
-#print(eigs)
-#m=ortho_group.rvs(dim=len(eigs))
-A=np.diag(eigs)
-print(A)
-#A=np.matmul(np.matmul(np.transpose(m),A),m)
+np.random.seed(12)
+#np.random.seed(96)
+#np.random.seed(40)
 
-b_mat=np.array([1,0,0,0,1,0,1,1,0,0,1,1,0,0,1,1])
-#b_mat=np.random.rand(8)
+#A=np.array([[1,-1/2],[-1/2,1]])
+N=psize
+maximum=2*N
+#eigs=[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0]
+eigs=np.random.uniform(low=0.0,high=maximum,size=N)
+eigs=np.ceil(eigs)
+#print(eigs)
+m=ortho_group.rvs(dim=len(eigs))
+A=np.diag(eigs)
+#print(A)
+A=np.matmul(np.matmul(np.transpose(m),A),m)
+print(A)
+
+#b_mat=np.array([1,0,0,0,1,0,1,1,0,0,1,1,0,0,1,1])
+b_mat=np.random.rand(N)
 bmat=np.array(b_mat/np.linalg.norm(b_mat))
 
-nclock=6
+nclock=nc
 
 #t=np.pi
 t=2*np.pi*((2**nclock)-1)/((2**nclock)*max(eigs))
@@ -242,7 +259,7 @@ circuit=build_circuit(A,bmat,t,nclock)
 
 # multiple runs
 
-[answer,ratios]=simulate(circuit)
+[answer,ratios]=simulate(N,circuit)
 
 #[fig,ax]=plt.subplots(1,2)
 #for i in range(2) :
@@ -279,6 +296,6 @@ for i in range(len(ratios[0])) :
     avg_ratios.append(sum(ratios[:,i])/len(ratios[:,i]))
     std_ratios.append(np.sqrt(sum([(ratios[j,i]-avg_ratios[-1])**2 for j in range(len(ratios[:,i]))])/len(ratios[:,i])))
 
-#print(exactratios)
+print(exactratios)
 print(avg_ratios)
 print(std_ratios)
